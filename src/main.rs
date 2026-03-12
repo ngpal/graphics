@@ -13,6 +13,7 @@ impl Vec2 {
     }
 }
 
+#[derive(Copy, Clone)]
 struct Vec3 {
     x: f32,
     y: f32,
@@ -29,15 +30,20 @@ impl Vec3 {
     }
 }
 
-// screen coords to memory coords
-fn s2m(coords: Vec2) -> u32 {
-    // downscale by size; -1->1 to -SIZE/2->SIZE/2
-    let half_size = SIZE as f32 / 2.;
-    let res = (coords.x * half_size, -coords.y * half_size);
-    // -SIZE/2->SIZE/2 to 0-SIZE
-    let res = (res.0 + half_size, res.1 + half_size);
-    // 1d coords
-    (res.0 + res.1 * SIZE as f32) as u32
+fn s2m(coords: Vec2) -> Option<usize> {
+    let half = SIZE as f32 / 2.0;
+
+    let x = coords.x * half + half;
+    let y = -coords.y * half + half;
+
+    let xi = x as i32;
+    let yi = y as i32;
+
+    if xi < 0 || xi >= SIZE as i32 || yi < 0 || yi >= SIZE as i32 {
+        return None;
+    }
+
+    Some((xi as usize) + (yi as usize) * SIZE)
 }
 
 fn draw_circle(buffer: &mut [u32], c: Vec2, r: f32, color: u32) {
@@ -49,8 +55,7 @@ fn draw_circle(buffer: &mut [u32], c: Vec2, r: f32, color: u32) {
             let sy = c.y + dy as f32 * step;
 
             if (sx - c.x) * (sx - c.x) + (sy - c.y) * (sy - c.y) <= r * r {
-                let idx = s2m(Vec2::new(sx, sy)) as usize;
-                if idx < buffer.len() {
+                if let Some(idx) = s2m(Vec2::new(sx, sy)) {
                     buffer[idx] = color;
                 }
             }
@@ -67,7 +72,7 @@ fn draw_line(buffer: &mut [u32], p0: Vec2, p1: Vec2, color: u32) {
     let dx = x1 - x0;
     let dy = y1 - y0;
 
-    let steps = dx.abs().max(dy.abs()) as usize;
+    let steps = dx.abs().max(dy.abs()).max(1.0) as usize;
 
     for i in 0..=steps {
         let t = i as f32 / steps as f32;
@@ -75,8 +80,7 @@ fn draw_line(buffer: &mut [u32], p0: Vec2, p1: Vec2, color: u32) {
         let x = p0.x + (p1.x - p0.x) * t;
         let y = p0.y + (p1.y - p0.y) * t;
 
-        let idx = s2m(Vec2::new(x, y)) as usize;
-        if idx < buffer.len() {
+        if let Some(idx) = s2m(Vec2::new(x, y)) {
             buffer[idx] = color;
         }
     }
@@ -85,12 +89,9 @@ fn draw_line(buffer: &mut [u32], p0: Vec2, p1: Vec2, color: u32) {
 fn main() {
     let mut buffer: Vec<u32> = vec![0; SIZE * SIZE];
 
-    let mut window = Window::new("Test - ESC to exit", SIZE, SIZE, WindowOptions::default())
-        .unwrap_or_else(|e| {
-            panic!("{}", e);
-        });
+    let mut window = Window::new("Cube - ESC to exit", SIZE, SIZE, WindowOptions::default())
+        .unwrap_or_else(|e| panic!("{}", e));
 
-    // Limit to max ~60 fps update rate
     window.set_target_fps(60);
 
     let cube = [
@@ -119,20 +120,40 @@ fn main() {
         (3, 7),
     ];
 
-    for v in cube.iter() {
-        draw_circle(&mut buffer, v.project(), 0.01, 0x00FF00);
-    }
-
-    for &(p0, p1) in edges.iter() {
-        draw_line(
-            &mut buffer,
-            cube[p0].project(),
-            cube[p1].project(),
-            0x00FF00,
-        );
-    }
+    let mut z_offset = 0.0f32;
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
+        buffer.fill(0);
+
+        if window.is_key_down(Key::Up) {
+            z_offset += 0.02;
+        }
+
+        if window.is_key_down(Key::Down) {
+            z_offset -= 0.02;
+        }
+
+        z_offset = z_offset.max(-1.4);
+
+        let mut transformed = [Vec3::new(0.0, 0.0, 0.0); 8];
+
+        for i in 0..cube.len() {
+            transformed[i] = Vec3::new(cube[i].x, cube[i].y, cube[i].z + z_offset);
+        }
+
+        for v in transformed.iter() {
+            draw_circle(&mut buffer, v.project(), 0.01, 0x00FF00);
+        }
+
+        for &(p0, p1) in edges.iter() {
+            draw_line(
+                &mut buffer,
+                transformed[p0].project(),
+                transformed[p1].project(),
+                0x00FF00,
+            );
+        }
+
         window.update_with_buffer(&buffer, SIZE, SIZE).unwrap();
     }
 }
