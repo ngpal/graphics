@@ -59,7 +59,15 @@ fn draw_circle(buffer: &mut [u32], c: Vec2, r: f32, color: u32) {
 }
 
 fn draw_line(buffer: &mut [u32], p0: Vec2, p1: Vec2, color: u32) {
-    let steps = ((p1.x - p0.x).abs().max((p1.y - p0.y).abs()) * SIZE as f32) as usize;
+    let x0 = p0.x * SIZE as f32 / 2.0;
+    let y0 = p0.y * SIZE as f32 / 2.0;
+    let x1 = p1.x * SIZE as f32 / 2.0;
+    let y1 = p1.y * SIZE as f32 / 2.0;
+
+    let dx = x1 - x0;
+    let dy = y1 - y0;
+
+    let steps = dx.abs().max(dy.abs()) as usize;
 
     for i in 0..=steps {
         let t = i as f32 / steps as f32;
@@ -111,31 +119,20 @@ fn main() {
         (3, 7),
     ];
 
-    let mut cam_z: f32 = 0.0;
+    for v in cube.iter() {
+        draw_circle(&mut buffer, v.project(), 0.01, 0x00FF00);
+    }
+
+    for &(p0, p1) in edges.iter() {
+        draw_line(
+            &mut buffer,
+            cube[p0].project(),
+            cube[p1].project(),
+            0x00FF00,
+        );
+    }
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        buffer.fill(0);
-
-        for v in cube.iter() {
-            let p = Vec3::new(v.x, v.y, v.z + cam_z).project();
-            draw_circle(&mut buffer, p, 0.01, 0x00FF00);
-        }
-
-        for &(p0, p1) in edges.iter() {
-            let a = Vec3::new(cube[p0].x, cube[p0].y, cube[p0].z + cam_z).project();
-            let b = Vec3::new(cube[p1].x, cube[p1].y, cube[p1].z + cam_z).project();
-
-            draw_line(&mut buffer, a, b, 0x00FF00);
-        }
-
-        if window.is_key_down(Key::Up) {
-            cam_z += 0.02;
-        }
-
-        if window.is_key_down(Key::Down) {
-            cam_z -= 0.02;
-        }
-
         window.update_with_buffer(&buffer, SIZE, SIZE).unwrap();
     }
 }
