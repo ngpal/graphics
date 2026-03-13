@@ -121,16 +121,25 @@ fn main() {
     ];
 
     let mut z_offset = 0.0f32;
+    let mut x_offset = 0.0f32;
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         buffer.fill(0);
 
         if window.is_key_down(Key::Up) {
-            z_offset += 0.02;
+            z_offset -= 0.02;
         }
 
         if window.is_key_down(Key::Down) {
-            z_offset -= 0.02;
+            z_offset += 0.02;
+        }
+
+        if window.is_key_down(Key::Right) {
+            x_offset -= 0.02;
+        }
+
+        if window.is_key_down(Key::Left) {
+            x_offset += 0.02
         }
 
         z_offset = z_offset.max(-1.4);
@@ -138,7 +147,7 @@ fn main() {
         let mut transformed = [Vec3::new(0.0, 0.0, 0.0); 8];
 
         for i in 0..cube.len() {
-            transformed[i] = Vec3::new(cube[i].x, cube[i].y, cube[i].z + z_offset);
+            transformed[i] = Vec3::new(cube[i].x + x_offset, cube[i].y, cube[i].z + z_offset);
         }
 
         for v in transformed.iter() {
