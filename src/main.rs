@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use minifb::{Key, Window, WindowOptions};
 
 const SIZE: usize = 600;
@@ -86,6 +88,16 @@ fn draw_line(buffer: &mut [u32], p0: Vec2, p1: Vec2, color: u32) {
     }
 }
 
+fn rotate_point_y(point: Vec3, deg: f32) -> Vec3 {
+    let rad = deg * PI / 180.;
+
+    let x = point.x * rad.cos() + point.z * rad.sin();
+    let y = point.y;
+    let z = point.x * -rad.sin() + point.z * rad.cos();
+
+    Vec3::new(x, y, z)
+}
+
 fn main() {
     let mut buffer: Vec<u32> = vec![0; SIZE * SIZE];
 
@@ -94,7 +106,7 @@ fn main() {
 
     window.set_target_fps(60);
 
-    let cube = [
+    let mut cube = [
         Vec3::new(-0.5, -0.5, 1.5),
         Vec3::new(0.5, -0.5, 1.5),
         Vec3::new(0.5, 0.5, 1.5),
@@ -120,45 +132,21 @@ fn main() {
         (3, 7),
     ];
 
-    let mut z_offset = 0.0f32;
-    let mut x_offset = 0.0f32;
-
     while window.is_open() && !window.is_key_down(Key::Escape) {
         buffer.fill(0);
 
-        if window.is_key_down(Key::Up) {
-            z_offset -= 0.02;
-        }
-
-        if window.is_key_down(Key::Down) {
-            z_offset += 0.02;
-        }
-
-        if window.is_key_down(Key::Right) {
-            x_offset -= 0.02;
-        }
-
-        if window.is_key_down(Key::Left) {
-            x_offset += 0.02
-        }
-
-        z_offset = z_offset.max(-1.4);
-
-        let mut transformed = [Vec3::new(0.0, 0.0, 0.0); 8];
-
-        for i in 0..cube.len() {
-            transformed[i] = Vec3::new(cube[i].x + x_offset, cube[i].y, cube[i].z + z_offset);
-        }
-
-        for v in transformed.iter() {
+        for v in cube.iter_mut() {
+            v.z -= 2.;
+            *v = rotate_point_y(*v, 1.);
+            v.z += 2.;
             draw_circle(&mut buffer, v.project(), 0.01, 0x00FF00);
         }
 
         for &(p0, p1) in edges.iter() {
             draw_line(
                 &mut buffer,
-                transformed[p0].project(),
-                transformed[p1].project(),
+                cube[p0].project(),
+                cube[p1].project(),
                 0x00FF00,
             );
         }
