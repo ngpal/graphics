@@ -158,14 +158,14 @@ fn main() {
     window.set_target_fps(60);
 
     let cube = [
-        Vec3::new(-0.5, -0.5, 1.5),
-        Vec3::new(0.5, -0.5, 1.5),
-        Vec3::new(0.5, 0.5, 1.5),
-        Vec3::new(-0.5, 0.5, 1.5),
-        Vec3::new(-0.5, -0.5, 2.5),
-        Vec3::new(0.5, -0.5, 2.5),
-        Vec3::new(0.5, 0.5, 2.5),
-        Vec3::new(-0.5, 0.5, 2.5),
+        Vec3::new(-0.5, -0.5, -0.5),
+        Vec3::new(0.5, -0.5, -0.5),
+        Vec3::new(0.5, 0.5, -0.5),
+        Vec3::new(-0.5, 0.5, -0.5),
+        Vec3::new(-0.5, -0.5, 0.5),
+        Vec3::new(0.5, -0.5, 0.5),
+        Vec3::new(0.5, 0.5, 0.5),
+        Vec3::new(-0.5, 0.5, 0.5),
     ];
     let triangles = [
         // front (+z facing camera → CCW)
@@ -191,10 +191,11 @@ fn main() {
     let mut rot_y = 0.0;
     let light_dir = Vec3::new(0., 0., 1.).normalized();
     let mut z_buffer = vec![f32::INFINITY; SIZE * SIZE];
+    let camera_pos = Vec3::new(0.0, 0.0, -2.0);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         z_buffer.fill(f32::INFINITY);
-        buffer.fill(0);
+        buffer.fill(0x000077);
 
         let speed = 2.;
 
@@ -214,10 +215,10 @@ fn main() {
         let mut transformed = cube;
 
         for v in transformed.iter_mut() {
-            v.z -= 2.;
             *v = rotate_point_y(*v, rot_y);
             *v = rotate_point_x(*v, rot_x);
-            v.z += 2.;
+
+            *v = *v - camera_pos
         }
 
         for &(i0, i1, i2) in triangles.iter() {
