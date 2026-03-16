@@ -98,6 +98,16 @@ fn rotate_point_y(point: Vec3, deg: f32) -> Vec3 {
     Vec3::new(x, y, z)
 }
 
+fn rotate_point_x(point: Vec3, deg: f32) -> Vec3 {
+    let rad = deg * PI / 180.;
+
+    let x = point.x;
+    let y = point.z * -rad.sin() + point.y * rad.cos();
+    let z = point.z * rad.cos() + point.y * rad.sin();
+
+    Vec3::new(x, y, z)
+}
+
 fn main() {
     let mut buffer: Vec<u32> = vec![0; SIZE * SIZE];
 
@@ -137,7 +147,8 @@ fn main() {
 
         for v in cube.iter_mut() {
             v.z -= 2.;
-            *v = rotate_point_y(*v, 1.);
+            *v = rotate_point_y(*v, 0.5);
+            *v = rotate_point_x(*v, 1.);
             v.z += 2.;
             draw_circle(&mut buffer, v.project(), 0.01, 0x00FF00);
         }
