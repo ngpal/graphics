@@ -7,6 +7,7 @@ mod raytracer;
 mod vector;
 
 use minifb::{Key, Window, WindowOptions};
+use rayon::prelude::*;
 
 use crate::{
     camera::Camera,
@@ -54,7 +55,7 @@ fn clip_near(a: Vec3, b: Vec3, c: Vec3) -> Vec<[Vec3; 3]> {
     }
 }
 
-const SIZE: usize = 600;
+const SIZE: usize = 200;
 const BG_COLOR: u32 = 0x000022;
 
 fn main() {
@@ -63,7 +64,7 @@ fn main() {
         SIZE,
         SIZE,
         WindowOptions {
-            // scale: minifb::Scale::X2,
+            scale: minifb::Scale::X4,
             ..Default::default()
         },
     )
@@ -72,9 +73,10 @@ fn main() {
     window.set_target_fps(60);
 
     let mesh = Mesh::from_obj_file("utah_teapot.obj");
+    // let mesh = cube();
     let light_dir = Vec3::new(0.0, 0.0, 1.0).normalized();
     let mut rasterizer = Rasterizer::new(SIZE);
-    let mut camera = Camera::new(Vec3::new(0.0, 0.0, -2.0));
+    let mut camera = Camera::new(Vec3::new(0.0, 2.0, -5.0));
     let mut orientation = Quat::identity();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -107,27 +109,48 @@ fn main() {
             camera.position.x += 0.02;
         }
 
-        // let transformed: Vec<Vec3> = mesh
-        //     .vertices
-        //     .iter()
-        //     .map(|&v| orientation.rotate(v))
-        //     .collect();
+        let transformed: Vec<Vec3> = mesh
+            .vertices
+            .iter()
+            .map(|&v| orientation.rotate(v))
+            .collect();
 
-        for y in 0..SIZE {
-            for x in 0..SIZE {
+        rasterizer
+            .buffer
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(i, pixel)| {
+                let x = i % SIZE;
+                let y = i / SIZE;
+
                 let u = (x as f32 / SIZE as f32) * 2.0 - 1.0;
                 let v = (y as f32 / SIZE as f32) * 2.0 - 1.0;
 
+                let inv = orientation.conjugate(); // inverse rotation
+
                 let ray = raytracer::Ray {
-                    origin: camera.position,
-                    dir: Vec3::new(u, -v, 1.0).normalized(),
+                    origin: inv.rotate(camera.position),
+                    dir: inv.rotate(Vec3::new(u, -v, 1.0)).normalized(),
                 };
 
-                let color = raytracer::trace(&ray);
+                *pixel = raytracer::trace(&ray, &mesh);
+            });
 
-                rasterizer.buffer[x + y * SIZE] = color;
-            }
-        }
+        // for y in 0..SIZE {
+        //     for x in 0..SIZE {
+        //         let u = (x as f32 / SIZE as f32) * 2.0 - 1.0;
+        //         let v = (y as f32 / SIZE as f32) * 2.0 - 1.0;
+
+        //         let ray = raytracer::Ray {
+        //             origin: camera.position,
+        //             dir: Vec3::new(u, -v, 1.0).normalized(),
+        //         };
+
+        //         let color = raytracer::trace(&ray, &mesh);
+
+        //         rasterizer.buffer[x + y * SIZE] = color;
+        //     }
+        // }
 
         // for &(i0, i1, i2) in &mesh.triangles {
         //     let v0 = transformed[i0];

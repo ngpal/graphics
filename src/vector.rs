@@ -86,19 +86,38 @@ pub struct Quat {
 
 impl Quat {
     pub fn identity() -> Self {
-        Self { w: 1.0, x: 0.0, y: 0.0, z: 0.0 }
+        Self {
+            w: 1.0,
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
     }
 
     pub fn from_axis_angle(axis: Vec3, deg: f32) -> Self {
         let half = deg * PI / 180.0 * 0.5;
         let s = half.sin();
-        Self { w: half.cos(), x: axis.x * s, y: axis.y * s, z: axis.z * s }
+        Self {
+            w: half.cos(),
+            x: axis.x * s,
+            y: axis.y * s,
+            z: axis.z * s,
+        }
     }
 
     pub fn rotate(&self, v: Vec3) -> Vec3 {
         let qv = Vec3::new(self.x, self.y, self.z);
         let t = qv.cross(v).scaled(2.0);
         v + t.scaled(self.w) + qv.cross(t)
+    }
+
+    pub fn conjugate(&self) -> Self {
+        Self {
+            w: self.w,
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+        }
     }
 }
 
@@ -107,10 +126,10 @@ impl Mul for Quat {
 
     fn mul(self, r: Quat) -> Quat {
         Quat {
-            w: self.w*r.w - self.x*r.x - self.y*r.y - self.z*r.z,
-            x: self.w*r.x + self.x*r.w + self.y*r.z - self.z*r.y,
-            y: self.w*r.y - self.x*r.z + self.y*r.w + self.z*r.x,
-            z: self.w*r.z + self.x*r.y - self.y*r.x + self.z*r.w,
+            w: self.w * r.w - self.x * r.x - self.y * r.y - self.z * r.z,
+            x: self.w * r.x + self.x * r.w + self.y * r.z - self.z * r.y,
+            y: self.w * r.y - self.x * r.z + self.y * r.w + self.z * r.x,
+            z: self.w * r.z + self.x * r.y - self.y * r.x + self.z * r.w,
         }
     }
 }
