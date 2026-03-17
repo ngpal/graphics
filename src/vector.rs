@@ -24,10 +24,6 @@ impl Vec3 {
         Self { x, y, z }
     }
 
-    pub fn project(&self) -> Vec2 {
-        Vec2::new(self.x / self.z, self.y / self.z)
-    }
-
     pub fn scaled(&self, scalar: f32) -> Vec3 {
         Vec3::new(self.x * scalar, self.y * scalar, self.z * scalar)
     }
