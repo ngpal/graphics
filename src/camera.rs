@@ -14,7 +14,8 @@ impl Camera {
     pub fn project(&self, v: Vec3) -> Option<(Vec2, f32)> {
         let rel = v - self.position;
 
-        if rel.z <= 0.0 {
+        const NEAR: f32 = 0.2;
+        if rel.z <= NEAR {
             return None;
         }
 
